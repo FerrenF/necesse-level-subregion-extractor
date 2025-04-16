@@ -50,25 +50,32 @@ def extract_logic_gates_formatted(filepath, x1, y1, x2, y2):
         block = match.group(1)
 
         gate = {}
+        data_fields = {}
+
         for field_match in re.finditer(r'(\w+)\s*=\s*([^,\n]+)', block):
             key = field_match.group(1).strip()
             val = field_match.group(2).strip()
+
             if key in ("tileX", "tileY"):
                 val = int(val)
-            gate[key] = val
+                gate[key] = val
+            elif key == "stringID":
+                gate["stringID"] = val
+            else:
+                data_fields[key] = val
 
-        if x1 <= gate["tileX"] < x2 and y1 <= gate["tileY"] < y2:
+        if x1 <= gate.get("tileX", -1) < x2 and y1 <= gate.get("tileY", -1) < y2:
             gate["tileX"] -= x1
             gate["tileY"] -= y1
 
+            data_lines = [f"\t\t\t{key} = {val}" for key, val in data_fields.items()]
+            data_block = "\t\tdata = {\n" + ",\n".join(data_lines) + "\n\t\t}"
+
             gate_lines = [
-                f'\t\ttileX = {gate["tileX"]}',
-                f'\t\ttileY = {gate["tileY"]}',
-                f'\t\tstringID = {gate["stringID"]}',
-                f'\t\tmirrorX = false',
-                f'\t\tmirrorY = false',
-                f'\t\trotation = 0',
-                f'\t\tdata = {{}}'
+                f"\t\ttileX = {gate['tileX']}",
+                f"\t\ttileY = {gate['tileY']}",
+                f"\t\tstringID = {gate['stringID']}",
+                data_block
             ]
             gate_block = "\tgate = {\n" + ",\n".join(gate_lines) + "\n\t}"
             formatted_gates.append(gate_block)
@@ -77,6 +84,7 @@ def extract_logic_gates_formatted(filepath, x1, y1, x2, y2):
         return "logicGates = {\n}"
 
     return "logicGates = {\n" + ",\n".join(formatted_gates) + "\n}"
+
 
 
 def build_tile_id_name_map(_tile_data, _tile_name_data):
